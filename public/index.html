@@ -2,79 +2,130 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIFA PRO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIFA PRO - Oficial</title>
     <style>
-        :root { --disp: #10b981; --res: #facc15; --pago: #ef4444; --sel: #3b82f6; --bg: #f8fafc; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 10px; max-width: 800px; margin: 20px auto; }
-        .num { height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; background: #fff; cursor: pointer; border: 2px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        :root { --disp: #10b981; --res: #facc15; --pago: #ef4444; --sel: #3b82f6; --bg: #f8fafc; --sidebar-w: 350px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+
+        .nav { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100; }
+        .logo { font-weight: 800; color: #1e293b; font-size: 1.3rem; }
+
+        .header-rifa { text-align: center; padding: 20px; background: #fff; border-bottom: 1px solid #eee; }
+        .legenda { display: flex; justify-content: center; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+        .leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #64748b; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .main-wrapper { display: flex; flex: 1; width: 100%; max-width: 1400px; margin: 0 auto; }
+        .content { flex: 1; padding: 20px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 10px; }
+        .num { height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 700; background: #fff; border: 2px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
         .disponivel { border-color: var(--disp); color: var(--disp); }
-        .selecionado { background: var(--sel) !important; color: white !important; }
-        .reservado { background: var(--res); color: white; cursor: not-allowed; }
-        .pago { background: var(--pago); color: white; cursor: not-allowed; }
-        .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); display: none; text-align: center; }
-        input { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; width: 80%; max-width: 300px; }
-        button { padding: 10px 20px; background: var(--disp); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .reservado { background: var(--res); color: #fff; cursor: not-allowed; border: none; }
+        .pago { background: var(--pago); color: #fff; cursor: not-allowed; border: none; }
+        .selecionado { background: var(--sel) !important; color: #fff !important; transform: scale(0.95); border: none; }
+
+        .sidebar { background: #fff; box-shadow: -5px 0 20px rgba(0,0,0,0.05); padding: 25px; display: none; flex-direction: column; width: var(--sidebar-w); position: sticky; top: 0; height: calc(100vh - 65px); }
+        
+        @media (max-width: 1024px) {
+            .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: auto; max-height: 85vh; border-radius: 25px 25px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); z-index: 1000; }
+            body { padding-bottom: 100px; }
+        }
+
+        .btn { background: var(--disp); color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.2s; }
+        input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 10px; font-size: 16px; }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; backdrop-filter: blur(5px); }
+        .modal-content { background: #fff; padding: 25px; border-radius: 20px; width: 100%; max-width: 450px; }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">RIFA PRO</h1>
-    <div id="grid" class="grid"></div>
 
-    <div id="sidebar" class="sidebar">
-        <div id="resumo" style="margin-bottom: 10px;"></div>
-        <input type="text" id="nome" placeholder="Nome Completo"><br>
-        <input type="text" id="cpf" placeholder="CPF"><br>
-        <input type="email" id="email" placeholder="E-mail"><br>
-        <input type="text" id="tel" placeholder="WhatsApp"><br>
-        <button onclick="comprar()">GERAR PIX</button>
+<div class="nav">
+    <div class="logo">RIFA PRO</div>
+    <button class="btn" style="width:auto; padding:10px 20px; background:var(--sel)" onclick="abrirMeusNumeros()">Meus Números</button>
+</div>
+
+<div class="header-rifa">
+    <h1 id="titulo-rifa" style="margin:0; font-size: 1.5rem;">Carregando...</h1>
+    <div class="legenda">
+        <div class="leg-item"><div class="dot" style="border: 2px solid var(--disp)"></div> Disponível</div>
+        <div class="leg-item"><div class="dot" style="background: var(--sel)"></div> Selecionado</div>
+        <div class="leg-item"><div class="dot" style="background: var(--res)"></div> Reservado</div>
+        <div class="leg-item"><div class="dot" style="background: var(--pago)"></div> Pago</div>
     </div>
+    <div style="display:flex; justify-content:center; gap:10px">
+        <button class="btn" style="width:auto; background:#f1f5f9; color:#475569; padding:8px 15px; font-size: 13px;" onclick="abrirModal('premios')">🎁 Prêmios</button>
+        <button class="btn" style="width:auto; background:#f1f5f9; color:#475569; padding:8px 15px; font-size: 13px;" onclick="abrirModal('info')">📜 Regras</button>
+    </div>
+</div>
 
-    <script>
-        let selecionados = [];
-        async function carregar() {
-            const res = await fetch('/api/numeros');
-            const dados = await res.json();
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-            dados.forEach(n => {
-                const div = document.createElement('div');
-                div.className = `num ${n.status}`;
-                div.innerText = n.numero;
-                if(n.status === 'disponivel') {
-                    div.onclick = () => {
-                        if(selecionados.includes(n.numero)) selecionados = selecionados.filter(x => x !== n.numero);
-                        else selecionados.push(n.numero);
-                        div.classList.toggle('selecionado');
-                        document.getElementById('sidebar').style.display = selecionados.length ? 'block' : 'none';
-                        document.getElementById('resumo').innerText = selecionados.length + " números selecionados";
-                    };
-                }
-                grid.appendChild(div);
-            });
-        }
-        async function comprar() {
-            const payload = {
-                numeros: selecionados,
-                nome: document.getElementById('nome').value,
-                cpf: document.getElementById('cpf').value,
-                email: document.getElementById('email').value,
-                telefone: document.getElementById('tel').value,
-                metodo: 'PIX'
+<div class="main-wrapper">
+    <div class="content"><div id="grid" class="grid"></div></div>
+    <div id="sidebar" class="sidebar">
+        <h3 style="margin-top:0">Finalizar Compra</h3>
+        <div id="resumo-texto" style="margin-bottom:15px; font-weight:bold; color: var(--sel);">0 números</div>
+        <input type="text" id="nome" placeholder="Nome Completo">
+        <input type="text" id="cpf" placeholder="CPF">
+        <input type="email" id="email" placeholder="E-mail">
+        <input type="text" id="tel" placeholder="WhatsApp">
+        <button class="btn" onclick="processarCompra()">GERAR PAGAMENTO PIX</button>
+    </div>
+</div>
+
+<div id="modal-info" class="modal"><div class="modal-content"><h3 id="m-tit"></h3><p id="m-corpo"></p><button class="btn" onclick="fecharModal()">Fechar</button></div></div>
+<div id="modal-pix" class="modal"><div class="modal-content" style="text-align:center"><h3>Pague via PIX</h3><img id="qr-img" style="width:200px"><div id="pix-payload" style="font-size:10px; word-break:break-all; background:#eee; padding:10px; margin:10px 0"></div><button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('pix-payload').innerText); alert('Copiado!')">COPIAR PIX</button><button class="btn" style="background:#64748b; margin-top:10px" onclick="location.reload()">FECHAR</button></div></div>
+
+<script>
+    let selecionados = [];
+    let configGeral = {};
+    const getCpf = () => localStorage.getItem('user_cpf');
+
+    async function carregar() {
+        const [resC, resN] = await Promise.all([fetch('/api/config'), fetch('/api/numeros')]);
+        configGeral = await resC.json();
+        document.getElementById('titulo-rifa').innerText = configGeral.titulo_rifa?.valor || 'Rifa Online';
+        
+        const nums = await resN.json();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        nums.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `num ${n.status}`;
+            div.innerText = n.numero;
+            if(n.status === 'disponivel') div.onclick = () => {
+                if(selecionados.includes(n.numero)) selecionados = selecionados.filter(x => x !== n.numero);
+                else selecionados.push(n.numero);
+                div.classList.toggle('selecionado');
+                document.getElementById('sidebar').style.display = selecionados.length ? 'flex' : 'none';
+                document.getElementById('resumo-texto').innerText = `${selecionados.length} números - R$ ${(selecionados.length*10).toFixed(2)}`;
             };
-            const res = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if(data.pix_code) {
-                alert("PIX Gerado! Use a função Meus Números para ver o código.");
-                location.reload();
-            }
+            grid.appendChild(div);
+        });
+        if(getCpf()) document.getElementById('cpf').value = getCpf();
+    }
+
+    async function processarCompra() {
+        const payload = { numeros: selecionados, nome: document.getElementById('nome').value, cpf: document.getElementById('cpf').value, email: document.getElementById('email').value, telefone: document.getElementById('tel').value, metodo: 'PIX' };
+        localStorage.setItem('user_cpf', payload.cpf.replace(/\D/g, ''));
+        const res = await fetch('/api/checkout', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if(data.pix_code) {
+            document.getElementById('qr-img').src = 'data:image/png;base64,' + data.pix_image;
+            document.getElementById('pix-payload').innerText = data.pix_code;
+            document.getElementById('modal-pix').style.display = 'flex';
         }
-        carregar();
-    </script>
+    }
+
+    function abrirModal(t) { 
+        document.getElementById('m-tit').innerText = t === 'premios' ? '🎁 Prêmios' : '📜 Regras';
+        document.getElementById('m-corpo').innerText = t === 'premios' ? configGeral.premios_texto?.valor : configGeral.info_rifa?.valor;
+        document.getElementById('modal-info').style.display = 'flex'; 
+    }
+    function fecharModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+    carregar();
+</script>
 </body>
 </html>

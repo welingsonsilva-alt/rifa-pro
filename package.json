@@ -1,7 +1,7 @@
 {
-  "name": "rifa-pro",
+  "name": "rifa-pro-vercel",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "api/index.js",
   "dependencies": {
     "axios": "^1.6.0",
     "cors": "^2.8.5",

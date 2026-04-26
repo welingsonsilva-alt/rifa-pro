@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,18 +8,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conexão Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ASAAS_KEY = process.env.ASAAS_KEY;
 
-// Rota de Teste (para você verificar se a API está viva)
-app.get('/api/health', (req, res) => res.json({ status: "ok", time: new Date() }));
-
 app.get('/api/config', async (req, res) => {
-    const { data } = await supabase.from('configuracoes').select('*');
-    const config = {};
-    if(data) data.forEach(item => config[item.chave] = { valor: item.valor });
-    res.json(config);
+    try {
+        const { data } = await supabase.from('configuracoes').select('*');
+        const config = {};
+        if(data) data.forEach(item => config[item.chave] = { valor: item.valor });
+        res.json(config);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/numeros', async (req, res) => {

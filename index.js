@@ -24,7 +24,9 @@ app.post('/api/checkout', async (req, res) => {
     const { numeros, nome, email, telefone, cpf, metodo, cardData } = req.body;
     try {
         const buscaCli = await axios.get(`${ASAAS_URL}/customers?email=${email}`, { headers: { access_token: ASAAS_KEY } });
-        let customerId = buscaCli.data.totalCount > 0 ? buscaCli.data.data[0].id : (await axios.post(`${ASAAS_URL}/customers`, { name: nome, email, cpfCnpj: cpf.replace(/\D/g, '') }, { headers: { access_token: ASAAS_KEY } })).data.id;
+        let customerId = buscaCli.data.totalCount > 0 ? buscaCli.data.data[0].id : (await axios.post(`${ASAAS_URL}/customers`, { 
+            name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), mobilePhone: telefone.replace(/\D/g, '') 
+        }, { headers: { access_token: ASAAS_KEY } })).data.id;
         
         const paymentRes = await axios.post(`${ASAAS_URL}/payments`, {
             customer: customerId,
@@ -35,7 +37,9 @@ app.post('/api/checkout', async (req, res) => {
             creditCard: metodo === 'CREDIT_CARD' ? {
                 holderName: cardData.holderName, number: cardData.number, expiryMonth: cardData.expiryMonth, expiryYear: cardData.expiryYear, ccv: cardData.ccv
             } : undefined,
-            creditCardHolderInfo: metodo === 'CREDIT_CARD' ? { name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), postalCode: '88000000', addressNumber: '1', phone: telefone } : undefined
+            creditCardHolderInfo: metodo === 'CREDIT_CARD' ? { 
+                name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), postalCode: '88000000', addressNumber: '1', phone: telefone.replace(/\D/g, '') 
+            } : undefined
         }, { headers: { access_token: ASAAS_KEY } });
 
         let pix = null;

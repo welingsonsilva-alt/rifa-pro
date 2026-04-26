@@ -13,22 +13,11 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const ASAAS_KEY = process.env.ASAAS_KEY;
 const ASAAS_URL = 'https://www.asaas.com/api/v3';
 
-// ROTA QUE BUSCA OS NÚMEROS (O coração do site)
 app.get('/api/numeros', async (req, res) => {
     try {
-        const { data, error } = await supabase.from('rifas').select('*').order('numero', { ascending: true });
-        if (error) throw error;
+        const { data } = await supabase.from('rifas').select('*').order('numero', { ascending: true });
         res.json(data || []);
     } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get('/api/config', async (req, res) => {
-    try {
-        const { data } = await supabase.from('configuracoes').select('*');
-        const config = {};
-        if(data) data.forEach(item => config[item.chave] = { valor: item.valor });
-        res.json(config);
-    } catch (e) { res.json({}); }
 });
 
 app.post('/api/checkout', async (req, res) => {
@@ -54,10 +43,9 @@ app.post('/api/checkout', async (req, res) => {
             const qr = await axios.get(`${ASAAS_URL}/payments/${paymentRes.data.id}/pixQrCode`, { headers: { access_token: ASAAS_KEY } });
             pix = { code: qr.data.payload, image: qr.data.encodedImage };
         }
-
         await supabase.from('rifas').update({ status: 'reservado', cpf_comprador: cpf.replace(/\D/g, ''), id_pagamento: paymentRes.data.id }).in('numero', numeros);
         res.json({ success: true, pix });
-    } catch (e) { res.status(500).json({ error: e.response?.data?.errors[0]?.description || "Erro" }); }
+    } catch (e) { res.status(500).json({ error: "Falha no pagamento" }); }
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

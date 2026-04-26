@@ -1,4 +1,3 @@
-﻿require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -8,18 +7,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// A Vercel injeta as variáveis do painel aqui
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const ASAAS_KEY = process.env.ASAAS_KEY;
-const ASAAS_URL = 'https://www.asaas.com/api/v3';
-
-// Rota de Teste para ver se está online
-app.get('/api/health', (req, res) => res.send('Sistema Online na Vercel'));
 
 app.get('/api/config', async (req, res) => {
-    const { data } = await supabase.from('configuracoes').select('*');
-    const config = {};
-    if(data) data.forEach(item => config[item.chave] = { valor: item.valor });
-    res.json(config);
+    try {
+        const { data } = await supabase.from('configuracoes').select('*');
+        const config = {};
+        if(data) data.forEach(item => config[item.chave] = { valor: item.valor });
+        res.json(config);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/numeros', async (req, res) => {
@@ -28,8 +26,7 @@ app.get('/api/numeros', async (req, res) => {
 });
 
 app.get('/api/consulta/:cpf', async (req, res) => {
-    const cpfLimpo = req.params.cpf.replace(/\D/g, '');
-    const { data } = await supabase.from('rifas').select('*').eq('cpf_comprador', cpfLimpo).order('numero', { ascending: true });
+    const { data } = await supabase.from('rifas').select('*').eq('cpf_comprador', req.params.cpf.replace(/\D/g, '')).order('numero', { ascending: true });
     const agora = new Date();
     res.json((data || []).map(n => {
         const expiraEm = new Date(new Date(n.updated_at).getTime() + 10 * 60000);
@@ -40,6 +37,7 @@ app.get('/api/consulta/:cpf', async (req, res) => {
 app.post('/api/checkout', async (req, res) => {
     let { numeros, nome, email, telefone, cpf, metodo } = req.body;
     try {
+        const ASAAS_URL = 'https://www.asaas.com/api/v3';
         const buscaCli = await axios.get(`${ASAAS_URL}/customers?email=${email}`, { headers: { access_token: ASAAS_KEY } });
         let customerId = buscaCli.data.totalCount > 0 ? buscaCli.data.data[0].id : (await axios.post(`${ASAAS_URL}/customers`, { name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), mobilePhone: telefone.replace(/\D/g, '') }, { headers: { access_token: ASAAS_KEY } })).data.id;
         const payment = await axios.post(`${ASAAS_URL}/payments`, { customer: customerId, billingType: metodo, value: numeros.length * 10, dueDate: new Date().toISOString().split('T')[0], description: `Rifa` }, { headers: { access_token: ASAAS_KEY } });
@@ -49,5 +47,4 @@ app.post('/api/checkout', async (req, res) => {
     } catch (e) { res.status(500).json({ error: true }); }
 });
 
-// Exporta para a Vercel tratar como função serverless
 module.exports = app;

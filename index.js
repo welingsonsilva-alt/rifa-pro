@@ -13,62 +13,62 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const ASAAS_KEY = process.env.ASAAS_KEY;
 const ASAAS_URL = 'https://www.asaas.com/api/v3';
 
-// Rota de Números
+// Busca números e limpa expirados (15 minutos)
 app.get('/api/numeros', async (req, res) => {
     try {
+        const agora = new Date();
+        const limite = new Date(agora.getTime() - 15 * 60000).toISOString();
+
+        // Libera números que passaram de 15 min e não foram pagos
+        await supabase.from('rifas')
+            .update({ status: 'disponivel', cpf_comprador: null, id_pagamento: null })
+            .eq('status', 'reservado')
+            .lt('updated_at', limite);
+
         const { data } = await supabase.from('rifas').select('*').order('numero', { ascending: true });
         res.json(data || []);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Rota de Checkout (PIX e Cartão)
+// Rota para excluir uma reserva manual (Somente se for o dono)
+app.post('/api/excluir-reserva', async (req, res) => {
+    const { numero, cpf } = req.body;
+    await supabase.from('rifas')
+        .update({ status: 'disponivel', cpf_comprador: null, id_pagamento: null })
+        .match({ numero: numero, cpf_comprador: cpf.replace(/\D/g, ''), status: 'reservado' });
+    res.json({ success: true });
+});
+
 app.post('/api/checkout', async (req, res) => {
     const { numeros, nome, email, telefone, cpf, metodo, cardData } = req.body;
     try {
-        // Criar/Buscar Cliente
         const buscaCli = await axios.get(`${ASAAS_URL}/customers?email=${email}`, { headers: { access_token: ASAAS_KEY } });
-        let customerId = buscaCli.data.totalCount > 0 ? buscaCli.data.data[0].id : (await axios.post(`${ASAAS_URL}/customers`, { 
-            name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), mobilePhone: telefone.replace(/\D/g, '') 
-        }, { headers: { access_token: ASAAS_KEY } })).data.id;
-
-        // Criar Cobrança
-        const payload = {
+        let customerId = buscaCli.data.totalCount > 0 ? buscaCli.data.data[0].id : (await axios.post(`${ASAAS_URL}/customers`, { name: nome, email, cpfCnpj: cpf.replace(/\D/g, '') }, { headers: { access_token: ASAAS_KEY } })).data.id;
+        
+        const paymentRes = await axios.post(`${ASAAS_URL}/payments`, {
             customer: customerId,
             billingType: metodo,
             value: numeros.length * 10,
             dueDate: new Date().toISOString().split('T')[0],
-            description: `Rifa da Kelly - Números: ${numeros.join(',')}`,
-            externalReference: cpf.replace(/\D/g, '')
-        };
-
-        if (metodo === 'CREDIT_CARD') {
-            payload.creditCard = {
-                holderName: cardData.holderName, number: cardData.number, expiryMonth: cardData.expiryMonth, expiryYear: cardData.expiryYear, ccv: cardData.ccv
-            };
-            payload.creditCardHolderInfo = { name: nome, email, cpfCnpj: cpf.replace(/\D/g, ''), postalCode: '88000000', addressNumber: '1', phone: telefone };
-        }
-
-        const payment = await axios.post(`${ASAAS_URL}/payments`, payload, { headers: { access_token: ASAAS_KEY } });
+            description: `Rifa Kelly`,
+            creditCard: metodo === 'CREDIT_CARD' ? { holderName: cardData.holderName, number: cardData.number, expiryMonth: cardData.expiryMonth, expiryYear: cardData.expiryYear, ccv: cardData.ccv } : undefined
+        }, { headers: { access_token: ASAAS_KEY } });
 
         let pix = null;
-        if (metodo === 'PIX') {
-            const qr = await axios.get(`${ASAAS_URL}/payments/${payment.data.id}/pixQrCode`, { headers: { access_token: ASAAS_KEY } });
+        if(metodo === 'PIX') {
+            const qr = await axios.get(`${ASAAS_URL}/payments/${paymentRes.data.id}/pixQrCode`, { headers: { access_token: ASAAS_KEY } });
             pix = { code: qr.data.payload, image: qr.data.encodedImage };
         }
 
-        // Atualizar Supabase
         await supabase.from('rifas').update({ 
             status: 'reservado', 
             cpf_comprador: cpf.replace(/\D/g, ''), 
-            id_pagamento: payment.data.id,
-            updated_at: new Date().toISOString()
+            id_pagamento: paymentRes.data.id,
+            updated_at: new Date().toISOString() 
         }).in('numero', numeros);
 
         res.json({ success: true, pix });
-    } catch (e) {
-        console.error(e.response?.data);
-        res.status(500).json({ error: e.response?.data?.errors[0]?.description || "Falha no Asaas" });
-    }
+    } catch (e) { res.status(500).json({ error: "Erro" }); }
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
